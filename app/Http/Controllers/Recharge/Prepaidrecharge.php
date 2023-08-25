@@ -30,8 +30,7 @@ class Prepaidrecharge extends Controller
                 "amount"       => 'required|numeric|gt:0',
                 "referenceid"    => 'required',   
             ]);
-            $userdata = Auth::user();
-        //    dd($userdata);
+            $userdata = Auth::user(); 
             if ($userdata && in_array($userdata->role, array(5))) {
                 if ($validated->fails()) {
                     $message   = $this->validationResponse($validated->errors());
@@ -40,7 +39,7 @@ class Prepaidrecharge extends Controller
                 $amount     =   $request->amount;
                 $unique     =   $request->referenceid; 
                 $operator   =   Rechargeoperator::select("*")->where("status",1)->where("op_id",$request->operator)->first(); 
-
+               
                 $previousrecharge = RechargeTrait::previousrecharge($request['mobile'], $request['operator'], $request['amount']);
                 if ($previousrecharge > 0) { 
                     $response = [
@@ -67,13 +66,12 @@ class Prepaidrecharge extends Controller
                         );
 
                      $charges = ChargesTrait::getrechargecomm($amount,$userdata->id,$request->operator,4);
-                    
+                  
                      $ins_array['comm']      = $charges['comm'];
                      $ins_array['dcomm']     = $charges['dcomm'];
                      $ins_array['sdcomm']    = $charges['sdcomm']; 
-                     if($userdata->cd_balance>=$amount) {
-                        $requestdata =  RechargeTrait::process($ins_array);
-                       
+                     if($userdata->cd_balance>=$amount) {   
+                        $requestdata =  RechargeTrait::process($ins_array);  
                         if($requestdata['status']==1 && $requestdata['txnno']!=""){ 
                             $update_request = Recharge::where("id", $requestdata['orderid'])
                             ->update(["status" => 1]);  
@@ -87,7 +85,7 @@ class Prepaidrecharge extends Controller
                                     'method'        => 'POST'
                                 );
                                
-                               $rs = Rechargelib::dorecharge($reqData); 
+                               $rs = Rechargelib::dorecharge($reqData);  
                                 if(isset($rs['statuscode'])){
                                     switch ($rs['statuscode']) {
                                         case 0:
@@ -188,10 +186,7 @@ class Prepaidrecharge extends Controller
                                         'mobile'=>$request->mobile
                                     ];
                                 return $this->response('success', $response); 
-                                }
-                               
-                              
-                              
+                                } 
                                 $response = [
                                     'errors' => "invalid!",
                                     'message' => $operator->name ." is Down. Please Try Again Later"

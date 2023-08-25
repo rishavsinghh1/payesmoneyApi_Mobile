@@ -133,10 +133,10 @@ class LoginController extends Controller
                             $this->sendverificationotp(["name" => $request->email,"email"=>Auth::user()->email,"phone"=>Auth::user()->phone, "isSend" => 1, 'otptype' => 'login']);
                             $response = $this->passwordError('otpsent');
                             if ($logintype == "email") {
-                                $response['data']['email'] = substr_replace(Auth::user()->email, "XXXXXX", 0, 6);
+                                $response['data']['email'] = substr_replace(Auth::user()->email, "XXXXXX", 5, 0);
                                 $response['data']['mobile'] = substr_replace(Auth::user()->phone, "XXXXXX", 0, 6);
                             } else {
-                                $response['data']['phone'] = substr_replace(Auth::user()->phone, "XXXXXX", 0, 6);
+                                $response['data']['phone'] = substr_replace(Auth::user()->phone, "XXXXXX", 5, 0);
                                 $response['data']['mobile'] = substr_replace(Auth::user()->phone, "XXXXXX", 0, 6);
                             }
                             return $this->response('success', $response);
@@ -221,20 +221,14 @@ class LoginController extends Controller
     {
         $environment = App::environment();
         if($environment != 'local'){
-            $otp = rand(0000,9999);
+            $otp = rand(000000,999999);
             Sms::sendMSG91sms(array("template"=>"otp","message"=>array(
                 "mobiles"=>"91".$req['phone'],
                 "otp"=> $otp 
          )));
          Otp::create(['name' => $req['name'], 'status' => 1, 'otptype' => $req['otptype'], 'otp' => $otp]);
         }else{
-            $otp = rand(0000,9999);
-            dd($otp);
-            Sms::sendMSG91sms(array("template"=>"otp","message"=>array(
-                "mobiles"=>"91".$req['phone'],
-                "otp"=> $otp 
-         )));
-       
+            $otp = rand(000000,999999); 
             Otp::create(['name' => $req['name'], 'status' => 1, 'otptype' => $req['otptype'], 'otp' => $otp]);
         }
       

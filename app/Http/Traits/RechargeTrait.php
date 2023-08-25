@@ -17,6 +17,7 @@ use Carbon\Carbon;
 trait RechargeTrait
 {
     public static function process($reqData){
+        
         $txnData    =   array();
         $return     =   array();
         $txnData['userid']      =   $reqData['uid'];
@@ -47,11 +48,11 @@ trait RechargeTrait
         $stmtData['ttype']          =   6;
         $stmtData['ipaddress']      =   $reqData['ipaddress'];
         
-        $agentcl	=	$reqData['amount']-($reqData['comm']);
+        $agentcl	=	$reqData['amount']-($reqData['comm']); 
         $wttype = self::wttype('main'); 
         DB::unprepared("LOCK TABLES tbl_transaction_cashdeposit as t READ,tbl_transaction_cashdeposit WRITE,tbl_users as u READ, tbl_users WRITE,tbl_recharge as r READ, tbl_recharge  WRITE");
         $query = DB::select(("SELECT SQL_NO_CACHE u.id,u.cd_balance,u.username,t.cd_closing from tbl_transaction_cashdeposit as t left JOIN tbl_users as u on t.uid=u.id where t.uid=".$reqData['uid']." and t.ttype in(".implode(",",$wttype).")  ORDER by t.id desc limit 1"));
-        $u_data =  $query[0];   
+        $u_data =  $query[0];  
          $stmtData['cd_opening']   =  $u_data->cd_balance;
          $stmtData['cd_closing']   =  ($stmtData['cd_opening']-$agentcl);
          if(count($query)!=0 && $u_data->cd_balance>=$agentcl){
