@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use App\Models\User;
 use App\Models\CashTransaction;
+use App\Libraries\Whatsapplib;
 trait CommissionTrait
 {
    public static function signlequery($table,$type){
@@ -182,6 +183,12 @@ trait CommissionTrait
                   if ($last_txn_id_of_sd_comm) {
                      $return['status']   =   1;
                      $return['message']  =   "This transaction processed.";
+                      $d=[
+                          'api_token'=>'94d83070-4097-4409-938d-5b9583d037f4',
+                          'mobile'=>'91'.$debitor->phone,
+                          'message'=> urlencode("Dear *".$debitor->firmname."* We Are Inform To You Your Commission has been credited amount of *".$reqData['amount']."*")
+                      ];
+                      $data=  Whatsapplib::doSentMessage($d);
                   } else {
                         $return['status']   =   0;
                         $return['message']  =   "This transaction cannot be processed. Please try later.";
@@ -228,6 +235,12 @@ trait CommissionTrait
                     if ($last_txn_id_of_sd_comm) {
                     $return['status']   =   1;
                     $return['message']  =   "This transaction processed.";
+                        $d=[
+                            'api_token'=>'94d83070-4097-4409-938d-5b9583d037f4',
+                            'mobile'=>'91'.$debitor->phone,
+                            'message'=> urlencode("Dear *".$debitor->firmname."* We Are Inform To You Your Commission has been credited amount of *".$reqData['amount']."*")
+                        ];
+                        $data=  Whatsapplib::doSentMessage($d);
                     } else {
                         $return['status']   =   0;
                         $return['message']  =   "This transaction cannot be processed. Please try later.";

@@ -27,11 +27,12 @@ $router->get('RefundDist','ConfigurationController@RefundDist');
         $router->post('verifyOtp', 'Auth\ResetController@verifyOtp');
         $router->post('forgotPassword', 'Auth\ResetController@forgotPassword');
         $router->post('forgotPasswordEmail', 'Auth\ResetController@forgotPasswordMail');
+        $router->post('checkresettoken', 'Auth\ResetController@CheckResetToken');
         $router->post('addmpin', 'Auth\LoginController@addmpin');
         $router->post('addtpin', 'Auth\LoginController@addtpin');
         $router->post('changeMpin', 'Auth\LoginController@changeMpin');
         $router->post('changeTpin', 'Auth\LoginController@changeTpin');
-        
+
         $router->group(['middleware' => ['auth:api']], function () use ($router) { 
             $router->post('logout', 'Auth\LoginController@logout');
         });

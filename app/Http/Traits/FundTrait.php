@@ -12,6 +12,7 @@ use App\Models\CashTransaction;
 use Illuminate\Support\Facades\DB;
 use App\Models\UserPasswordDetails as UserPassword;
 use App\Models\Creditrequest;
+use App\Libraries\Whatsapplib;
 use App\Models\CompanyBank;
 trait FundTrait
 {
@@ -146,6 +147,19 @@ trait FundTrait
                                 $return['status']   =   1;
                                 $return['message']  =   "Transaction Successful";
                                 $return['newbalance']  =   $debt_closing;
+
+                                $d=[
+                                    'api_token'=>'94d83070-4097-4409-938d-5b9583d037f4',
+                                    'mobile'=>'91'.$debitor->phone,
+                                    'message'=> urlencode("Dear *".$debitor->firmname."* We Are Inform To You ".$narration. "Your new Balance is *".$debt_closing."*")
+                                ];
+                                $crditerAlert=[
+                                    'api_token'=>'94d83070-4097-4409-938d-5b9583d037f4',
+                                    'mobile'=>'91'.$creditor->phone,
+                                    'message'=> urlencode("Dear *".$creditor->firmname."* We Are Inform To You Wallet has been credited from *".$debitor->firmname. "* amount of *".$request['amount']."* Now Your Updated Balance is *".$cedit_closing. "*. प्रिय *".$creditor->firmname."* हम आपको सूचित कर रहे हैं कि वॉलेट में *".$debitor->firmname. "* खाते से ".$request['amount']."* की राशि जमा कर दी गई है, अब आपका नया बैलेंस *".$cedit_closing. "* है।")
+                                ];
+                                $data=  Whatsapplib::doSentMessage($d);
+                                $data=  Whatsapplib::doSentMessage($crditerAlert);
                             }else {
                                 $return['status']   =   0;
                                 $return['message']  =   "This transaction cannot be processed. Please try later.";

@@ -99,46 +99,66 @@ class ResetController extends Controller
             } else {
                 $credentials['email'] = trim($request->email);
             }
-            $chkUser = User::select(is_numeric($request->email) ? 'phone' : 'email','phone')->where($credentials)->first();
-            //dd( $chkUser );
+            $chkUser = User::select(is_numeric($request->email) ? 'phone' : 'email','phone','username','firmname')->where($credentials)->first();
+            //dd($chkUser);
             if (empty($chkUser)) {
                 return $this->response('notvalid');
             }
-            $genOtp = sprintf("%04d", mt_rand(1, 9999)); 
+            $genOtp = substr(number_format(time() * rand(),0,'',''),0,6);;
             $otp = new Otp;
             $otp->otp = $genOtp;
             $otp->name = $request->email;
             $otp->status = 1;
             $otp->save();
-            // Sms::sendMSG91sms(array("template"=>"otp","message"=>array(
-            //     "mobiles"=>"91".$chkUser->phone,
-            //     "otp"=> $genOtp 
-            // )));
+//             Sms::sendMSG91sms(array("template"=>"otp","message"=>array(
+//                 "mobiles"=>"91".$chkUser->phone,
+//                 "otp"=> $genOtp
+//             )));
             $d=[
                 'api_token'=>'94d83070-4097-4409-938d-5b9583d037f4',
                 'mobile'=>'91'.$chkUser->phone,
-                'message'=> urlencode("
-                    Dear .$request->email. ,
-                        The One Time Password (OTP) for your transaction at Payes Money of Reset Password with your Account " . $request->email . " is " . $genOtp . ".
-
-                        This OTP is valid for 10 minutes or 1 successful attempt, whichever is earlier. Please note that this OTP is valid only for this transaction and cannot be used for any other transaction.
-
-                        Please do not share this One Time Password with anyone.
-
-                        To know more, please visit FAQ
-
-                        In case you have not requested for OTP, please contact the Best Api helpline at +91 11 6931 2750.
-
-                        Warm Regards
-                        Best Api ")
+                'message'=> urlencode("Dear *".$chkUser->firmname."*,
+The One Time Password (OTP) for your transaction at PayesMoney of Reset Password with your Account *".$chkUser->username."*  OTP is *".$genOtp."*  . This OTP is valid for 10 minutes or 1 successful attempt, whichever is earlier. Please do not share this One Time Password with anyone. (यह ओटीपी 10 मिनट या 1 सफल प्रयास, जो भी पहले हो, के लिए वैध है। कृपया इस वन टाइम पासवर्ड को किसी के साथ साझा न करें।)")
             ];
             $data=  Whatsapplib::doSentMessage($d);
-            return $this->response('success', ['message' => 'Otp send successfully', 'otp' => $genOtp]);
+            return $this->response('success', ['message' => 'Otp send successfully', 'otp' => $genOtp,'mob'=>substr_replace($chkUser->phone, "XXXXX", 0, 5)]);
         } catch (\Throwable $th) {
             return $this->response('internalservererror', ['message' => $th->getMessage()]);
         }
     }
     /***********************Verify Otp*********************************************/
+
+    public function CheckResetToken(Request $request){
+        try {
+            $validatorArray = [
+                'token' => 'required'
+            ];
+            $messagesArray = [
+                'token.required' => 'Invalid token!'
+            ];
+
+            $validator = Validator::make($request->all(), $validatorArray, $messagesArray);
+            if ($validator->fails()) {
+                $message = $this->validationResponse($validator->errors());
+                return $this->response('validatorerrors', $message);
+            }
+
+
+            $UserPassword = UserPasswordReset::where('token', $request->token)->orderBy('id', 'desc')->first();
+
+            if (empty($UserPassword)) {
+                return $this->response('incorrectinfo', ['message' => 'Link Expired!!Please genrate link again..','expired'=>1]);
+            }
+            if($UserPassword->status == 0){
+                return $this->response('incorrectinfo', ['message' => 'Link Expired. Please genrate link again...','expired'=>1]);
+            }
+
+
+            return $this->response('success', ['message' => 'Token validated...','expired'=>1]);
+        } catch (\Throwable $th) {
+            return $this->response('internalservererror', ['message' => $th->getMessage()]);
+        }
+    }
     public function verifyOtp(Request $request)
     {
         try {
@@ -154,17 +174,23 @@ class ResetController extends Controller
             if (is_numeric($request->email)) {
                 $credentials['phone'] = $request->email;
             } else {
-                $credentials['username'] = trim($request->email);
+
+                if(str_contains($request->email,'@')){
+                    $credentials['email'] = trim($request->email);
+                }else{
+                    $credentials['username'] = trim($request->email);
+                }
+
             }
 
             $Otp = $request->otp;
             // echo($Otp);
             $geneOtp = Otp::select('id', 'name', 'otp', 'status', 'created_at')->where('name', $request->email)->orderBy('created_at', 'desc')->first();
-          
+
             $userdetails = User::select('*')->where($credentials)->first();
-            
+            // dd( $userdetails);
             $token = Auth::login($userdetails);
-         
+
             if (!empty($geneOtp)) {
                 if ($geneOtp->otp == $Otp) {
                     if($geneOtp->status == 1){
@@ -182,13 +208,10 @@ class ResetController extends Controller
                             $d=[
                                 'api_token'=>'94d83070-4097-4409-938d-5b9583d037f4',
                                 'mobile'=>'91'.$userdetails->phone,
-                                'message'=> urlencode("Dear ".$userdetails->firmname.",
-
-                                Please click link to reset your password:".$link."In case you have not requested for OTP, please contact the Best Api helpline at +91 11 6931 2750.
-
-
-                                Warm Regard
-                                Best Api")
+                                'message'=> urlencode("Dear *".$userdetails->firmname."*,
+Please click link to reset your password:".$link." In case you have not requested for OTP please report us.
+                                
+(कृपया अपना पासवर्ड रीसेट करने के लिए लिंक पर क्लिक करें:.$link.  यदि आपने ओटीपी के लिए अनुरोध नहीं किया है तो कृपया हमें रिपोर्ट करें।)")
                             ];
                             $data=  Whatsapplib::doSentMessage($d);
                             return $this->response('success', ['message' => 'Password reset link sent on your Whatsapp & email.', 'link' => $link]);
@@ -198,7 +221,7 @@ class ResetController extends Controller
                         $location = $request->lat . "," . $request->lng;
                         Userloginlog::create(["userid" => Auth::user()->id, "ipaddress" => $request->ip(), 'latlng' => $location, 'device_name' => $request->server('HTTP_USER_AGENT')]);
                         $result = Auth::user();
-                       
+
                         $return['name']                 =   $result->fullname;
                         $return['userid']               =   $result->id;
                         $return['email']          	    =   $result->email;
@@ -208,12 +231,12 @@ class ResetController extends Controller
                         $return['usertype']             =   $result->role;
                         $return['balance']              =   $result->balance;
                         $return['cd_balance']           =   $result->cd_balance;
-                        $return['allowfundrequest']     =   $result->allowfundrequest; 
+                        $return['allowfundrequest']     =   $result->allowfundrequest;
                         $return['is_onboard']           =   $result->is_onboard;
                         $return['is_kyc']               =   $result->is_kyc;
                         $return['is_email']             =   ($result->email == 1)?1:0;
                         $return['phone']                =   $result->phone;
-                        $return['pannumber']            =   $result->pannumber; 
+                        $return['pannumber']            =   $result->pannumber;
                         $return['is_staff']             =   $result->is_staff;
                         $return['bysignup']             =   $result->bysignup;
                         if($result->usertype == 0 && $result->is_staff ==0){
@@ -229,9 +252,9 @@ class ResetController extends Controller
                         }
 
                         if(in_array($result->role,array(1,2,3,4,5,6))){
-                            $result = Permission::where(array("userid" => Auth::user()->id))->first(); 
+                            $result = Permission::where(array("userid" => Auth::user()->id))->first();
 
-                           
+
                             //$result = $this->db->select('*')->from('permission')->where(['userid'=>$result['id']])->get()->row_array();
                             $return['permission'] = [];
                             if($result){
@@ -251,14 +274,14 @@ class ResetController extends Controller
                             }
                         }
                         return $this->response('success', [
-                         'message' => 'Otp Match',
-                         'data' =>  $return,
-                         'authtoken' => $token,
+                            'message' => 'Otp Match',
+                            'data' =>  $return,
+                            'authtoken' => $token,
                         ]);
                     }else{
                         return $this->response('incorrectinfo', ['message' => 'otp expired']);
                     }
-                    
+
                 } else {
                     return $this->response('incorrectinfo', ['message' => 'Invalid Otp!!']);
                 }
@@ -272,7 +295,7 @@ class ResetController extends Controller
     /***********************Forgot Password****************************************/
     public function forgotPassword(Request $request)
     {
-         
+
         try {
             $validatorArray = [
                 'email' => 'required',
@@ -358,7 +381,7 @@ class ResetController extends Controller
 
     public function forgotPasswordMail(Request $request)
     {
-        
+
         try {
             $validatorArray = [
                 'token' => 'required',
@@ -376,7 +399,7 @@ class ResetController extends Controller
                 $message = $this->validationResponse($validator->errors());
                 return $this->response('validatorerrors', $message);
             }
-            
+
 
             $UserPassword = UserPasswordReset::where('token', $request->token)->orderBy('id', 'desc')->first();
             if (empty($UserPassword)) {
@@ -386,7 +409,7 @@ class ResetController extends Controller
                 return $this->response('incorrectinfo', ['message' => 'Link Expired']);
             }
 
-            
+
 
             $to = date('Y-m-d h:i:sa');
             $from = date("Y-m-d h:i:sa", strtotime("-6 months", strtotime(date('Y-m-d'))));

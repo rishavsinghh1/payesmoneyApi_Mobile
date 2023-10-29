@@ -23,8 +23,8 @@ class ConfigurationController extends Controller
     public function __construct()
     {
         //
-          $this->mindate      =   date('Y-m-d', strtotime(date('Y-m-d') . ' -1day'));
-          // $this->mindate      =  '2023-08-16';
+         $this->mindate      =   date('Y-m-d', strtotime(date('Y-m-d') . ' -1day'));
+          //$this->mindate      =  '2023-08-16';
         $this->today      = Carbon::now()->toDateString();
     }
 
@@ -55,23 +55,29 @@ class ConfigurationController extends Controller
         FROM `tbl_transaction_cashdeposit`
         where sdid is NOT null 
         and date_format(`dateadded`,'%Y-%m-%d') >= '".$this->mindate."' and  sdcomm > 0 GROUP BY sdid,ttype")); 
-        $totaldata = $query;   
-        foreach($totaldata  as  $val){
-            $commission  =  $val->credit;
-            $tds = 0;
-            $netcomm = $commission - $tds;
-            $reqData    =   array(
-                "id"		=> 	$val->sdid,
-                "amount"	=>	$netcomm,
-                "commission"=>	$commission,
-                "tds"		=>	$tds,
-                "addeddate"	=>	 $this->today, 
-                "narration"	=>	"Commission of ".RechargeTrait::txn_type($val->ttype)." Rs. ".$netcomm." of Date : ".$this->mindate,    
-            );   
-            $result = CommissionTrait::supercomm($reqData); 
-            
+        $totaldata = $query;
+        if($totaldata){
+            foreach($totaldata  as  $val){
+                $commission  =  $val->credit;
+                $tds = 0;
+                $netcomm = $commission - $tds;
+                $reqData    =   array(
+                    "id"		=> 	$val->sdid,
+                    "amount"	=>	$netcomm,
+                    "commission"=>	$commission,
+                    "tds"		=>	$tds,
+                    "addeddate"	=>	 $this->today,
+                    "narration"	=>	"Commission of ".RechargeTrait::txn_type($val->ttype)." Rs. ".$netcomm." of Date : ".$this->mindate,
+                );
+                $result = CommissionTrait::supercomm($reqData);
+            }
+            return $this->response('success', $result);
+        }else{
+            $result['status']   =   0;
+            $result['message']  =   "This transaction cannot be processed. Please try later. or No data is Pending";
+            return $this->response('notvalid', $result);
         }
-        return $this->response('success', $result);
+
 
     }
 
@@ -82,24 +88,31 @@ class ConfigurationController extends Controller
         FROM `tbl_transaction_cashdeposit`
         where did is NOT null 
         and date_format(`dateadded`,'%Y-%m-%d') >= '".$this->mindate."' and  dcomm > 0 GROUP BY did,ttype")); 
-        $totaldata = $query; 
-       //  dd($totaldata);
-        foreach($totaldata  as  $val){
-            $commission  =  $val->credit; 
-            $tds = 0;
-            $netcomm = $commission - $tds;
-            $reqData    =   array(
-                "id"		=> 	$val->did,
-                "amount"	=>	$netcomm,
-                "commission"=>	$commission,
-                "tds"		=>	$tds,
-                "addeddate"	=>	 $this->today, 
-                "narration"	=>	"Commission of ".RechargeTrait::txn_type($val->ttype)." Rs. ".$netcomm." of Date : ".$this->mindate,    
-            );  
-            $result = CommissionTrait::distributorcomm($reqData); 
-           
+        $totaldata = $query;
+        if($totaldata){
+            foreach($totaldata  as  $val){
+                $commission  =  $val->credit;
+                $tds = 0;
+                $netcomm = $commission - $tds;
+                $reqData    =   array(
+                    "id"		=> 	$val->did,
+                    "amount"	=>	$netcomm,
+                    "commission"=>	$commission,
+                    "tds"		=>	$tds,
+                    "addeddate"	=>	 $this->today,
+                    "narration"	=>	"Commission of ".RechargeTrait::txn_type($val->ttype)." Rs. ".$netcomm." of Date : ".$this->mindate,
+                );
+                $result = CommissionTrait::distributorcomm($reqData);
+
+            }
+            return $this->response('success', $result);
+        }else{
+            $result['status']   =   0;
+            $result['message']  =   "This transaction cannot be processed. Please try later. or No data is Pending";
+            return $this->response('notvalid', $result);
         }
-        return $this->response('success', $result);
+
+
 
     }
 

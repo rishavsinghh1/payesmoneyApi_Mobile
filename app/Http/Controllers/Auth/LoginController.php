@@ -216,31 +216,37 @@ class LoginController extends Controller
         } catch (\Throwable $th) {
             return $this->response('internalservererror', ['message' => $th->getMessage()]);
         }
-    } 
+    }
     protected function sendverificationotp($req)
     {
         $environment = App::environment();
         if($environment != 'local'){
-            $otp = rand(000000,999999);
-            Sms::sendMSG91sms(array("template"=>"otp","message"=>array(
-                "mobiles"=>"91".$req['phone'],
-                "otp"=> $otp 
-         )));
-         Otp::create(['name' => $req['name'], 'status' => 1, 'otptype' => $req['otptype'], 'otp' => $otp]);
-        }else{
-            $otp = rand(000000,999999); 
+            $otp = substr(number_format(time() * rand(),0,'',''),0,6);;
+            //     Sms::sendMSG91sms(array("template"=>"otp","message"=>array(
+            //         "mobiles"=>"91".$req['phone'],
+            //         "otp"=> $otp
+            //  )));
             $d=[
                 'api_token'=>'94d83070-4097-4409-938d-5b9583d037f4',
                 'mobile'=>'91'.$req['phone'],
                 'message'=> urlencode("Your One Time OTP is : " . $otp)
             ];
-            $data=  Whatsapplib::doSentMessage($d);  
+            $data=  Whatsapplib::doSentMessage($d);
+            Otp::create(['name' => $req['name'], 'status' => 1, 'otptype' => $req['otptype'], 'otp' => $otp]);
+        }else{
+            $otp = substr(number_format(time() * rand(),0,'',''),0,6);;
+            $d=[
+                'api_token'=>'94d83070-4097-4409-938d-5b9583d037f4',
+                'mobile'=>'91'.$req['phone'],
+                'message'=> urlencode("Your One Time OTP is : " . $otp)
+            ];
+            $data=  Whatsapplib::doSentMessage($d);
             Otp::create(['name' => $req['name'], 'status' => 1, 'otptype' => $req['otptype'], 'otp' => $otp]);
         }
-      
-       
+
+
         return true;
-    } 
+    }
     public function verifyOtp(Request $request)
     {
         try {
